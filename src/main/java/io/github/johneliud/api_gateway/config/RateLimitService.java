@@ -3,7 +3,8 @@ package io.github.johneliud.api_gateway.config;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,8 +13,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@Slf4j
 public class RateLimitService {
+    
+    private static final Logger log = LoggerFactory.getLogger(RateLimitService.class);
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
     
     @Value("${rate.limit.login.capacity:5}")
