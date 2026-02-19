@@ -55,7 +55,11 @@ public class ProxyHandler {
         }
 
         HttpHeaders headers = new HttpHeaders();
-        headers.addAll(request.headers().asHttpHeaders());
+        request.headers().asHttpHeaders().forEach((key, values) -> {
+            if (!key.equalsIgnoreCase("Host") && !key.equalsIgnoreCase("Content-Length")) {
+                headers.addAll(key, values);
+            }
+        });
 
         if (requiresAuth) {
             String authHeader = request.headers().firstHeader("Authorization");
