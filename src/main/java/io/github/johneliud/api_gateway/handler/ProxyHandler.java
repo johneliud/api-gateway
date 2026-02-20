@@ -87,10 +87,23 @@ public class ProxyHandler {
                 .headers(h -> h.addAll(headers))
                 .body(BodyInserters.fromDataBuffers(request.bodyToFlux(DataBuffer.class)))
                 .exchangeToMono(response -> {
-                    ServerResponse.BodyBuilder responseBuilder = ServerResponse.status(response.statusCode())
-                            .headers(h -> h.addAll(response.headers().asHttpHeaders()));
+                    ServerResponse.BodyBuilder responseBuilder = ServerResponse.status(response.statusCode());
                     
-                    return responseBuilder.body(BodyInserters.fromDataBuffers(response.bodyToFlux(DataBuffer.class)));
+                    response.headers().asHttpHeaders().forEach((key, values) -> {
+                        if (!key.equalsIgnoreCase("Transfer-Encoding")) {
+                            responseBuilder.header(key, values.toArray(new String[0]));
+                        }
+                    });
+                    
+                    return response.bodyToMono(String.class)
+                            .flatMap(body -> responseBuilder.bodyValue(body))
+                            .switchIfEmpty(responseBuilder.build());
+                })
+                .onErrorResume(e -> {
+                    log.error("Proxy error: {}", e.getMessage());
+                    return ServerResponse.status(HttpStatus.BAD_GATEWAY)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue("{\"error\":\"Service unavailable\"}");
                 });
     }
 
