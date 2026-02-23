@@ -95,9 +95,18 @@ public class ProxyHandler {
                         }
                     });
                     
-                    return response.bodyToMono(String.class)
-                            .flatMap(body -> responseBuilder.bodyValue(body))
-                            .switchIfEmpty(responseBuilder.build());
+                    String contentType = response.headers().contentType()
+                            .map(MediaType::toString)
+                            .orElse("application/octet-stream");
+                    
+                    if (contentType.startsWith("image/")) {
+                        return response.bodyToMono(byte[].class)
+                                .flatMap(body -> responseBuilder.bodyValue(body));
+                    } else {
+                        return response.bodyToMono(String.class)
+                                .flatMap(body -> responseBuilder.bodyValue(body))
+                                .switchIfEmpty(responseBuilder.build());
+                    }
                 })
                 .onErrorResume(e -> {
                     log.error("Proxy error: {}", e.getMessage());
