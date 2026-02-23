@@ -48,7 +48,10 @@ public class RouteConfig {
                 .andRoute(path("/api/products/**"), 
                     req -> handler.proxyRequest(req, productServiceUrl, true, false))
                 
-                .andRoute(GET("/api/media/{id}").or(GET("/api/media/product/{productId}")), 
+                .andRoute(GET("/api/media/{id}"), 
+                    req -> handler.proxyRequest(req, mediaServiceUrl, false, false))
+                
+                .andRoute(GET("/api/media/product/{productId}"), 
                     req -> handler.proxyRequest(req, mediaServiceUrl, false, false))
                 
                 .andRoute(path("/api/media/**"), 
