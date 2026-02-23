@@ -39,6 +39,9 @@ public class RouteConfig {
                 .andRoute(path("/api/users/profile/**"), 
                     req -> handler.proxyRequest(req, userServiceUrl, true, false))
                 
+                .andRoute(GET("/api/products/my-products"), 
+                    req -> handler.proxyRequest(req, productServiceUrl, true, false))
+                
                 .andRoute(GET("/api/products").or(GET("/api/products/{id}")), 
                     req -> handler.proxyRequest(req, productServiceUrl, false, false))
                 
