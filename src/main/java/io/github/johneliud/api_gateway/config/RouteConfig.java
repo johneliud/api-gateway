@@ -39,13 +39,13 @@ public class RouteConfig {
                 .andRoute(path("/api/users/profile/**"), 
                     req -> handler.proxyRequest(req, userServiceUrl, true, false))
                 
-                .andRoute(GET("/api/products").or(GET("/api/products/*")), 
+                .andRoute(GET("/api/products").or(GET("/api/products/{id}")), 
                     req -> handler.proxyRequest(req, productServiceUrl, false, false))
                 
                 .andRoute(path("/api/products/**"), 
                     req -> handler.proxyRequest(req, productServiceUrl, true, false))
                 
-                .andRoute(GET("/api/media/*").or(GET("/api/media/product/**")), 
+                .andRoute(GET("/api/media/{id}").or(GET("/api/media/product/{productId}")), 
                     req -> handler.proxyRequest(req, mediaServiceUrl, false, false))
                 
                 .andRoute(path("/api/media/**"), 
