@@ -39,6 +39,9 @@ public class RouteConfig {
                 .andRoute(GET("/api/users/avatars/{filename}"), 
                     req -> handler.proxyRequest(req, userServiceUrl, false, false))
                 
+                .andRoute(GET("/api/users/{id}"), 
+                    req -> handler.proxyRequest(req, userServiceUrl, false, false))
+                
                 .andRoute(path("/api/users/profile/**"), 
                     req -> handler.proxyRequest(req, userServiceUrl, true, false))
                 
