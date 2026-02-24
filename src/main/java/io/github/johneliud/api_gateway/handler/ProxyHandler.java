@@ -83,7 +83,7 @@ public class ProxyHandler {
         WebClient webClient = webClientBuilder.build();
         
         return webClient.method(request.method())
-                .uri(targetUrl + request.path())
+                .uri(targetUrl + request.path() + (request.uri().getQuery() != null ? "?" + request.uri().getQuery() : ""))
                 .headers(h -> h.addAll(headers))
                 .body(BodyInserters.fromDataBuffers(request.bodyToFlux(DataBuffer.class)))
                 .exchangeToMono(response -> {
