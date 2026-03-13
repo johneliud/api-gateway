@@ -55,6 +55,15 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy') {
+            steps {
+                echo "Deploying ${env.SERVICE_NAME} to Render..."
+                // withCredentials([string(credentialsId: 'render-deploy-hook-api-gateway', variable: 'RENDER_DEPLOY_HOOK')]) {
+                //     sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
+                // }
+            }
+        }
     }
 
     post {
