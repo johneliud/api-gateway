@@ -78,10 +78,34 @@ pipeline {
 
     post {
         success {
-            echo "SUCCESS: ${env.SERVICE_NAME} build and tests passed."
+        	echo "SUCCESS: ${env.SERVICE_NAME} build and tests passed. Alert sent to email."
+            emailext(
+                subject: "[Jenkins] ${env.JOB_NAME} #${env.BUILD_NUMBER} — Build Successful",
+                body: """
+                    <p><b>Status:</b> SUCCESS</p>
+                    <p><b>Service:</b> ${env.SERVICE_NAME}</p>
+                    <p><b>Job:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
+                    <p><b>Console Output:</b> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
+                """,
+                mimeType: 'text/html',
+                to: 'johneliud2001@gmail.com'
+            )
         }
         failure {
-            echo "FAILURE: ${env.SERVICE_NAME} build or tests failed. Check logs and JUnit reports."
+        	echo "FAILURE: ${env.SERVICE_NAME} build or tests failed. Alert sent to email. Check logs and JUnit reports."
+            emailext(
+                subject: "[Jenkins] ${env.JOB_NAME} #${env.BUILD_NUMBER} — Build Failed",
+                body: """
+                    <p><b>Status:</b> FAILURE</p>
+                    <p><b>Service:</b> ${env.SERVICE_NAME}</p>
+                    <p><b>Job:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
+                    <p><b>Console Output:</b> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
+                """,
+                mimeType: 'text/html',
+                to: 'johneliud2001@gmail.com'
+            )
         }
         always {
             echo "Cleaning up workspace..."
