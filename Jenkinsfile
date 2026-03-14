@@ -63,6 +63,16 @@ pipeline {
                 //     sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
                 // }
             }
+            post {
+                failure {
+                    echo "Deployment failed for ${env.SERVICE_NAME}. Rolling back..."
+                    // withCredentials([string(credentialsId: 'render-deploy-hook-api-gateway', variable: 'RENDER_DEPLOY_HOOK')]) {
+                    // Triggers a redeploy of the last pushed commit on the connected branch
+                    // For version-specific rollback, use the Render dashboard: Dashboard > Service > Deploys > Redeploy
+                    //     sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
+                    // }
+                }
+            }
         }
     }
 
