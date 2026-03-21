@@ -23,6 +23,9 @@ public class RouteConfig {
     @Value("${media.service.url}")
     private String mediaServiceUrl;
 
+    @Value("${order.service.url}")
+    private String orderServiceUrl;
+
     @Bean
     public WebClient.Builder webClientBuilder() {
         return WebClient.builder();
@@ -60,7 +63,13 @@ public class RouteConfig {
                 .andRoute(GET("/api/media/product/{productId}"), 
                     req -> handler.proxyRequest(req, mediaServiceUrl, false, false))
                 
-                .andRoute(path("/api/media/**"), 
-                    req -> handler.proxyRequest(req, mediaServiceUrl, true, false));
+                .andRoute(path("/api/media/**"),
+                    req -> handler.proxyRequest(req, mediaServiceUrl, true, false))
+
+                .andRoute(path("/api/orders/**"),
+                    req -> handler.proxyRequest(req, orderServiceUrl, true, false))
+
+                .andRoute(path("/api/cart/**"),
+                    req -> handler.proxyRequest(req, orderServiceUrl, true, false));
     }
 }
