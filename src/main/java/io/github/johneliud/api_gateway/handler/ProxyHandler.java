@@ -56,7 +56,10 @@ public class ProxyHandler {
 
         HttpHeaders headers = new HttpHeaders();
         request.headers().asHttpHeaders().forEach((key, values) -> {
-            if (!key.equalsIgnoreCase("Host") && !key.equalsIgnoreCase("Content-Length")) {
+            if (!key.equalsIgnoreCase("Host") &&
+                !key.equalsIgnoreCase("Content-Length") &&
+                !key.equalsIgnoreCase("X-User-Id") &&
+                !key.equalsIgnoreCase("X-User-Role")) {
                 headers.addAll(key, values);
             }
         });
@@ -117,13 +120,10 @@ public class ProxyHandler {
     }
 
     private String getClientIp(ServerRequest request) {
-        String xForwardedFor = request.headers().firstHeader("X-Forwarded-For");
-        if (xForwardedFor != null) {
-            return xForwardedFor.split(",")[0];
-        }
         ServerHttpRequest nativeRequest = request.exchange().getRequest();
-        return nativeRequest.getRemoteAddress() != null 
-                ? nativeRequest.getRemoteAddress().getAddress().getHostAddress() 
-                : "unknown";
+        if (nativeRequest.getRemoteAddress() != null) {
+            return nativeRequest.getRemoteAddress().getAddress().getHostAddress();
+        }
+        return "unknown";
     }
 }
