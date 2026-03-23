@@ -11,4 +11,4 @@ jobs:
     
     steps:
       - name: Ping api-gateway
-        run: curl -s -o /dev/null -w "%{http_code}" https://api-gateway-4l1q.onrender.com/api/health || true
+        run: curl -s -o /dev/null -w "%{http_code}" https://api-gateway-4l1q.onrender.com || true

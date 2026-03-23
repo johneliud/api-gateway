@@ -1,4 +1,4 @@
-package io.github.johneliud.order_service.controllers;
+package io.github.johneliud.api_gateway.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
