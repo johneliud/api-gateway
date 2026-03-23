@@ -12,6 +12,12 @@ spring:
         - RemoveRequestHeader=X-User-Id
         - RemoveRequestHeader=X-User-Role
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 logging:
   level:
     io.github.johneliud.api_gateway: INFO
