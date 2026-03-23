@@ -11,18 +11,25 @@ import java.util.Arrays;
 @Configuration
 public class CorsConfig {
 
+	@Value("${cors.allowed-origins}")
+    private String allowedOriginsProperty;
+
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(Arrays.asList("http://localhost:4200", "https://frontend-seven-rho-67.vercel.app"));
+        
+        List<String> allowedOrigins = Arrays.stream(allowedOriginsProperty.split(","))
+                                                    .map(String::trim)
+                                                    .collect(Collectors.toList());
+                config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization"));
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-        
+
         return new CorsWebFilter(source);
     }
 }
