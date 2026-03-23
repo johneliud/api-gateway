@@ -6,8 +6,11 @@ spring:
     name: api-gateway
   config:
     import: optional:classpath:application-secrets.properties
-  codec:
-    max-in-memory-size: 10MB
+  cloud:
+    gateway:
+      default-filters:
+        - RemoveRequestHeader=X-User-Id
+        - RemoveRequestHeader=X-User-Role
 
 logging:
   level:
