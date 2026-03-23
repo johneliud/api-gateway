@@ -6,9 +6,6 @@ spring:
     name: api-gateway
   config:
     import: optional:classpath:application-secrets.properties
-  autoconfigure:
-    exclude:
-      - org.springframework.cloud.autoconfigure.LifecycleMvcEndpointAutoConfiguration
   cloud:
     gateway:
       default-filters:
