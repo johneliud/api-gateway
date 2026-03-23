@@ -1,15 +1,12 @@
 package io.github.johneliud.api_gateway.config;
 
-import io.github.johneliud.api_gateway.handler.ProxyHandler;
+import io.github.johneliud.api_gateway.filter.AuthenticationFilter;
+import io.github.johneliud.api_gateway.filter.RateLimitGatewayFilter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.ServerResponse;
-
-import static org.springframework.web.reactive.function.server.RequestPredicates.*;
-import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
 @Configuration
 public class RouteConfig {
@@ -27,49 +24,64 @@ public class RouteConfig {
     private String orderServiceUrl;
 
     @Bean
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
-    }
+    public RouteLocator gatewayRoutes(RouteLocatorBuilder builder,
+                                      AuthenticationFilter authFilter,
+                                      RateLimitGatewayFilter rateLimitFilter) {
+        return builder.routes()
+                // Public user routes
+                .route("user-register", r -> r.path("/api/users/register").and().method("POST")
+                        .uri(userServiceUrl))
 
-    @Bean
-    public RouterFunction<ServerResponse> gatewayRoutes(ProxyHandler handler) {
-        return route(POST("/api/users/register"), 
-                    req -> handler.proxyRequest(req, userServiceUrl, false, false))
-                
-                .andRoute(POST("/api/users/login"), 
-                    req -> handler.proxyRequest(req, userServiceUrl, false, true))
-                
-                .andRoute(GET("/api/users/avatars/{filename}"), 
-                    req -> handler.proxyRequest(req, userServiceUrl, false, false))
-                
-                .andRoute(GET("/api/users/{id}"), 
-                    req -> handler.proxyRequest(req, userServiceUrl, false, false))
-                
-                .andRoute(path("/api/users/profile/**"), 
-                    req -> handler.proxyRequest(req, userServiceUrl, true, false))
-                
-                .andRoute(GET("/api/products/my-products"), 
-                    req -> handler.proxyRequest(req, productServiceUrl, true, false))
-                
-                .andRoute(GET("/api/products").or(GET("/api/products/{id}")), 
-                    req -> handler.proxyRequest(req, productServiceUrl, false, false))
-                
-                .andRoute(path("/api/products/**"), 
-                    req -> handler.proxyRequest(req, productServiceUrl, true, false))
-                
-                .andRoute(GET("/api/media/{id}"), 
-                    req -> handler.proxyRequest(req, mediaServiceUrl, false, false))
-                
-                .andRoute(GET("/api/media/product/{productId}"), 
-                    req -> handler.proxyRequest(req, mediaServiceUrl, false, false))
-                
-                .andRoute(path("/api/media/**"),
-                    req -> handler.proxyRequest(req, mediaServiceUrl, true, false))
+                .route("user-login", r -> r.path("/api/users/login").and().method("POST")
+                        .filters(f -> f.filter(rateLimitFilter.apply(new RateLimitGatewayFilter.Config())))
+                        .uri(userServiceUrl))
 
-                .andRoute(path("/api/orders/**"),
-                    req -> handler.proxyRequest(req, orderServiceUrl, true, false))
+                .route("user-avatar", r -> r.path("/api/users/avatars/{filename}").and().method("GET")
+                        .uri(userServiceUrl))
 
-                .andRoute(path("/api/cart/**"),
-                    req -> handler.proxyRequest(req, orderServiceUrl, true, false));
+                .route("user-by-id", r -> r.path("/api/users/{id}").and().method("GET")
+                        .uri(userServiceUrl))
+
+                // Authenticated user routes
+                .route("user-profile", r -> r.path("/api/users/profile/**")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(userServiceUrl))
+
+                // Product routes — specific before catch-all
+                .route("product-my-products", r -> r.path("/api/products/my-products").and().method("GET")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(productServiceUrl))
+
+                .route("product-list", r -> r.path("/api/products").and().method("GET")
+                        .uri(productServiceUrl))
+
+                .route("product-by-id", r -> r.path("/api/products/{id}").and().method("GET")
+                        .uri(productServiceUrl))
+
+                .route("product-auth", r -> r.path("/api/products/**")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(productServiceUrl))
+
+                // Media routes — specific before catch-all
+                .route("media-by-id", r -> r.path("/api/media/{id}").and().method("GET")
+                        .uri(mediaServiceUrl))
+
+                .route("media-by-product", r -> r.path("/api/media/product/{productId}").and().method("GET")
+                        .uri(mediaServiceUrl))
+
+                .route("media-auth", r -> r.path("/api/media/**")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(mediaServiceUrl))
+
+                // Order and cart routes (all authenticated)
+                .route("orders", r -> r.path("/api/orders/**")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(orderServiceUrl))
+
+                .route("cart", r -> r.path("/api/cart/**")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(orderServiceUrl))
+
+                .build();
     }
 }
