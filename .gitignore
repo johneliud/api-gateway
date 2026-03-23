@@ -38,5 +38,6 @@ build/
 
 ### Secrets ###
 src/main/resources/application-secrets.properties
+*.env
 
 *.jar
