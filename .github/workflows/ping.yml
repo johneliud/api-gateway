@@ -11,4 +11,4 @@ jobs:
 
     steps:
       - name: Ping api-gateway
-        run: curl -s -o /dev/null -w "%{http_code}" https://{{secrets.BASE_URL}}/actuator/health
+        run: curl -s -o /dev/null -w "%{http_code}" https://${{secrets.BASE_URL}}/actuator/health
