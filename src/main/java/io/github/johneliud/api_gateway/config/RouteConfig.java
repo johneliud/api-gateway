@@ -43,12 +43,20 @@ public class RouteConfig {
                 .route("auth-logout", r -> r.path("/api/auth/logout").and().method("POST")
                         .uri(userMicroserviceUrl))
 
-                // User Microservice — authenticated endpoints
+                // User Microservice — public 2FA step (no full JWT yet, only MFA token)
+                .route("auth-2fa-authenticate", r -> r.path("/api/auth/2fa/authenticate").and().method("POST")
+                        .uri(userMicroserviceUrl))
+
+                // User Microservice — authenticated 2FA management (specific before catch-all)
                 .route("auth-2fa", r -> r.path("/api/auth/2fa/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
                         .uri(userMicroserviceUrl))
 
-                .route("user-me", r -> r.path("/api/users/me/**")
+                .route("user-profile", r -> r.path("/api/users/profile/**")
+                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
+                        .uri(userMicroserviceUrl))
+
+                .route("user-admin", r -> r.path("/api/users/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
                         .uri(userMicroserviceUrl))
 
