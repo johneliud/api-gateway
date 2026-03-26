@@ -37,7 +37,7 @@ class JwtUtilTest {
 
     @Test
     void validateToken_validToken_returnsClaims() {
-        String token = buildToken("user123", "CLIENT", new Date(System.currentTimeMillis() + 3_600_000));
+        String token = buildToken("user123", "ROLE_USER", new Date(System.currentTimeMillis() + 3_600_000));
         Claims claims = jwtUtil.validateToken(token);
         assertNotNull(claims);
         assertEquals("user123", claims.getSubject());
@@ -45,21 +45,21 @@ class JwtUtilTest {
 
     @Test
     void getUserId_returnsSubject() {
-        String token = buildToken("user123", "CLIENT", new Date(System.currentTimeMillis() + 3_600_000));
+        String token = buildToken("user123", "ROLE_USER", new Date(System.currentTimeMillis() + 3_600_000));
         Claims claims = jwtUtil.validateToken(token);
         assertEquals("user123", jwtUtil.getUserId(claims));
     }
 
     @Test
     void getRole_returnsRoleClaim() {
-        String token = buildToken("user123", "SELLER", new Date(System.currentTimeMillis() + 3_600_000));
+        String token = buildToken("user123", "ROLE_ADMIN", new Date(System.currentTimeMillis() + 3_600_000));
         Claims claims = jwtUtil.validateToken(token);
-        assertEquals("SELLER", jwtUtil.getRole(claims));
+        assertEquals("ROLE_ADMIN", jwtUtil.getRole(claims));
     }
 
     @Test
     void validateToken_expiredToken_throwsException() {
-        String token = buildToken("user123", "CLIENT", new Date(System.currentTimeMillis() - 1_000));
+        String token = buildToken("user123", "ROLE_USER", new Date(System.currentTimeMillis() - 1_000));
         assertThrows(Exception.class, () -> jwtUtil.validateToken(token));
     }
 
