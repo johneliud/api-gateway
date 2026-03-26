@@ -39,18 +39,18 @@ class GatewayIntegrationTest {
                 .compact();
     }
 
-    // AG-8: JWT validation tests
+    // JWT validation — protected route guards
 
     @Test
     void protectedRoute_noAuthHeader_returns401() {
-        webTestClient.get().uri("/api/users/profile/me")
+        webTestClient.get().uri("/api/users/me")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void protectedRoute_invalidToken_returns401() {
-        webTestClient.get().uri("/api/users/profile/me")
+        webTestClient.get().uri("/api/users/me")
                 .header("Authorization", "Bearer invalid.token.here")
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -58,17 +58,17 @@ class GatewayIntegrationTest {
 
     @Test
     void protectedRoute_malformedAuthHeader_returns401() {
-        webTestClient.get().uri("/api/users/profile/me")
-                .header("Authorization", "Token " + validToken("user1", "CLIENT"))
+        webTestClient.get().uri("/api/users/me")
+                .header("Authorization", "Token " + validToken("user1", "ROLE_USER"))
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
-    // AG-7: Security headers present on all responses
+    // Security headers present on all responses
 
     @Test
     void anyResponse_hasSecurityHeaders() {
-        webTestClient.get().uri("/api/users/profile/me")
+        webTestClient.get().uri("/api/users/me")
                 .exchange()
                 .expectHeader().valueEquals("X-Content-Type-Options", "nosniff")
                 .expectHeader().valueEquals("X-Frame-Options", "DENY")
@@ -76,71 +76,80 @@ class GatewayIntegrationTest {
                 .expectHeader().exists("Content-Security-Policy");
     }
 
-    // AG-9: Orders routes
+    // Movie Service — public routes are open, write routes are protected
 
     @Test
-    void ordersRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/orders")
+    void movieList_noAuth_isAllowed() {
+        webTestClient.get().uri("/api/movies")
+                .exchange()
+                .expectStatus().not5xxServerError();
+    }
+
+    @Test
+    void movieCreate_noAuth_returns401() {
+        webTestClient.post().uri("/api/movies")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void orderByIdRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/orders/order123")
+    void movieUpdate_noAuth_returns401() {
+        webTestClient.put().uri("/api/movies/some-id")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void sellerOrdersRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/orders/seller")
+    void movieDelete_noAuth_returns401() {
+        webTestClient.delete().uri("/api/movies/some-id")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    // Rating Service — public reads, authenticated writes
+
+    @Test
+    void ratingsByMovie_noAuth_isAllowed() {
+        webTestClient.get().uri("/api/ratings/movie/some-id")
+                .exchange()
+                .expectStatus().not5xxServerError();
+    }
+
+    @Test
+    void ratingCreate_noAuth_returns401() {
+        webTestClient.post().uri("/api/ratings")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    // Recommendation Service — all authenticated
+
+    @Test
+    void recommendations_noAuth_returns401() {
+        webTestClient.get().uri("/api/recommendations")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    // User Microservice — authenticated endpoints
+
+    @Test
+    void userMe_noAuth_returns401() {
+        webTestClient.get().uri("/api/users/me")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void createOrderRoute_noAuth_returns401() {
-        webTestClient.post().uri("/api/orders")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    // AG-10: Cart routes
-
-    @Test
-    void cartRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/cart")
+    void userWatchlist_noAuth_returns401() {
+        webTestClient.get().uri("/api/users/me/watchlist")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void addCartItemRoute_noAuth_returns401() {
-        webTestClient.post().uri("/api/cart/items")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void checkoutRoute_noAuth_returns401() {
-        webTestClient.post().uri("/api/cart/checkout")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    // AG-11: Profile stats routes
-
-    @Test
-    void buyerStatsRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/users/profile/stats")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void sellerStatsRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/users/profile/seller-stats")
+    void twoFaSetup_noAuth_returns401() {
+        webTestClient.post().uri("/api/auth/2fa/setup")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
