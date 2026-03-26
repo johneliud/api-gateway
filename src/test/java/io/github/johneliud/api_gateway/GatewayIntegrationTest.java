@@ -43,14 +43,14 @@ class GatewayIntegrationTest {
 
     @Test
     void protectedRoute_noAuthHeader_returns401() {
-        webTestClient.get().uri("/api/users/me")
+        webTestClient.get().uri("/api/users/profile")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void protectedRoute_invalidToken_returns401() {
-        webTestClient.get().uri("/api/users/me")
+        webTestClient.get().uri("/api/users/profile")
                 .header("Authorization", "Bearer invalid.token.here")
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -58,7 +58,7 @@ class GatewayIntegrationTest {
 
     @Test
     void protectedRoute_malformedAuthHeader_returns401() {
-        webTestClient.get().uri("/api/users/me")
+        webTestClient.get().uri("/api/users/profile")
                 .header("Authorization", "Token " + validToken("user1", "ROLE_USER"))
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -68,7 +68,7 @@ class GatewayIntegrationTest {
 
     @Test
     void anyResponse_hasSecurityHeaders() {
-        webTestClient.get().uri("/api/users/me")
+        webTestClient.get().uri("/api/users/profile")
                 .exchange()
                 .expectHeader().valueEquals("X-Content-Type-Options", "nosniff")
                 .expectHeader().valueEquals("X-Frame-Options", "DENY")
@@ -135,14 +135,14 @@ class GatewayIntegrationTest {
 
     @Test
     void userMe_noAuth_returns401() {
-        webTestClient.get().uri("/api/users/me")
+        webTestClient.get().uri("/api/users/profile")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void userWatchlist_noAuth_returns401() {
-        webTestClient.get().uri("/api/users/me/watchlist")
+        webTestClient.get().uri("/api/users/profile/watchlist")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
