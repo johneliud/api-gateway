@@ -11,76 +11,78 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RouteConfig {
 
-    @Value("${user.service.url}")
-    private String userServiceUrl;
+    @Value("${user.microservice.url}")
+    private String userMicroserviceUrl;
 
-    @Value("${product.service.url}")
-    private String productServiceUrl;
+    @Value("${movie.service.url}")
+    private String movieServiceUrl;
 
-    @Value("${media.service.url}")
-    private String mediaServiceUrl;
+    @Value("${rating.service.url}")
+    private String ratingServiceUrl;
 
-    @Value("${order.service.url}")
-    private String orderServiceUrl;
+    @Value("${recommendation.service.url}")
+    private String recommendationServiceUrl;
 
     @Bean
     public RouteLocator gatewayRoutes(RouteLocatorBuilder builder,
                                       AuthenticationFilter authFilter,
                                       RateLimitGatewayFilter rateLimitFilter) {
         return builder.routes()
-                // Public user routes
-                .route("user-register", r -> r.path("/api/users/register").and().method("POST")
-                        .uri(userServiceUrl))
 
-                .route("user-login", r -> r.path("/api/users/login").and().method("POST")
+                // ── User Microservice — public auth endpoints ──────────────────────
+                .route("auth-register", r -> r.path("/api/auth/register").and().method("POST")
+                        .uri(userMicroserviceUrl))
+
+                .route("auth-login", r -> r.path("/api/auth/login").and().method("POST")
                         .filters(f -> f.filter(rateLimitFilter.apply(new RateLimitGatewayFilter.Config())))
-                        .uri(userServiceUrl))
+                        .uri(userMicroserviceUrl))
 
-                .route("user-avatar", r -> r.path("/api/users/avatars/{filename}").and().method("GET")
-                        .uri(userServiceUrl))
+                .route("auth-refresh", r -> r.path("/api/auth/refresh").and().method("POST")
+                        .uri(userMicroserviceUrl))
 
-                .route("user-by-id", r -> r.path("/api/users/{id}").and().method("GET")
-                        .uri(userServiceUrl))
+                .route("auth-logout", r -> r.path("/api/auth/logout").and().method("POST")
+                        .uri(userMicroserviceUrl))
 
-                // Authenticated user routes
-                .route("user-profile", r -> r.path("/api/users/profile/**")
+                // User Microservice — authenticated endpoints
+                .route("auth-2fa", r -> r.path("/api/auth/2fa/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
-                        .uri(userServiceUrl))
+                        .uri(userMicroserviceUrl))
 
-                // Product routes — specific before catch-all
-                .route("product-my-products", r -> r.path("/api/products/my-products").and().method("GET")
+                .route("user-me", r -> r.path("/api/users/me/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
-                        .uri(productServiceUrl))
+                        .uri(userMicroserviceUrl))
 
-                .route("product-list", r -> r.path("/api/products").and().method("GET")
-                        .uri(productServiceUrl))
+                // ── Movie Service — public read endpoints ──────────────────────────
+                .route("movie-search", r -> r.path("/api/movies/search").and().method("GET")
+                        .uri(movieServiceUrl))
 
-                .route("product-by-id", r -> r.path("/api/products/{id}").and().method("GET")
-                        .uri(productServiceUrl))
+                .route("movie-list", r -> r.path("/api/movies").and().method("GET")
+                        .uri(movieServiceUrl))
 
-                .route("product-auth", r -> r.path("/api/products/**")
+                .route("movie-by-id", r -> r.path("/api/movies/{id}").and().method("GET")
+                        .uri(movieServiceUrl))
+
+                // Movie Service — authenticated write endpoints (specific before catch-all)
+                .route("movie-auth", r -> r.path("/api/movies/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
-                        .uri(productServiceUrl))
+                        .uri(movieServiceUrl))
 
-                // Media routes — specific before catch-all
-                .route("media-by-id", r -> r.path("/api/media/{id}").and().method("GET")
-                        .uri(mediaServiceUrl))
+                // ── Rating Service — public read endpoints ─────────────────────────
+                .route("ratings-by-movie", r -> r.path("/api/ratings/movie/{movieId}").and().method("GET")
+                        .uri(ratingServiceUrl))
 
-                .route("media-by-product", r -> r.path("/api/media/product/{productId}").and().method("GET")
-                        .uri(mediaServiceUrl))
+                .route("ratings-by-user", r -> r.path("/api/ratings/user/{userId}").and().method("GET")
+                        .uri(ratingServiceUrl))
 
-                .route("media-auth", r -> r.path("/api/media/**")
+                // Rating Service — authenticated write endpoints
+                .route("ratings-auth", r -> r.path("/api/ratings/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
-                        .uri(mediaServiceUrl))
+                        .uri(ratingServiceUrl))
 
-                // Order and cart routes (all authenticated)
-                .route("orders", r -> r.path("/api/orders/**")
+                // ── Recommendation Service — all authenticated ─────────────────────
+                .route("recommendations", r -> r.path("/api/recommendations/**")
                         .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
-                        .uri(orderServiceUrl))
-
-                .route("cart", r -> r.path("/api/cart/**")
-                        .filters(f -> f.filter(authFilter.apply(new AuthenticationFilter.Config())))
-                        .uri(orderServiceUrl))
+                        .uri(recommendationServiceUrl))
 
                 .build();
     }
