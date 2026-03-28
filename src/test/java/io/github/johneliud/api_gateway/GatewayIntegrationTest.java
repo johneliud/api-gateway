@@ -15,7 +15,7 @@ import java.util.Date;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayIntegrationTest {
 
-    private static final String TEST_SECRET = "NqnGzaDEIZhGXWnbnWDHViZyKhinshBQ";
+    private static final String TEST_SECRET = "ThisIsATestSecretThisIsATestSecret";
 
     @LocalServerPort
     private int port;
@@ -38,8 +38,6 @@ class GatewayIntegrationTest {
                 .signWith(key)
                 .compact();
     }
-
-    // JWT validation — protected route guards
 
     @Test
     void protectedRoute_noAuthHeader_returns401() {
@@ -64,8 +62,6 @@ class GatewayIntegrationTest {
                 .expectStatus().isUnauthorized();
     }
 
-    // Security headers present on all responses
-
     @Test
     void anyResponse_hasSecurityHeaders() {
         webTestClient.get().uri("/api/users/profile")
@@ -76,13 +72,11 @@ class GatewayIntegrationTest {
                 .expectHeader().exists("Content-Security-Policy");
     }
 
-    // Movie Service — public routes are open, write routes are protected
-
     @Test
     void movieList_noAuth_isAllowed() {
         webTestClient.get().uri("/api/movies")
                 .exchange()
-                .expectStatus().not5xxServerError();
+                .expectStatus().is2xxSuccessful();
     }
 
     @Test
@@ -106,13 +100,11 @@ class GatewayIntegrationTest {
                 .expectStatus().isUnauthorized();
     }
 
-    // Rating Service — public reads, authenticated writes
-
     @Test
     void ratingsByMovie_noAuth_isAllowed() {
         webTestClient.get().uri("/api/ratings/movie/some-id")
                 .exchange()
-                .expectStatus().not5xxServerError();
+                .expectStatus().is2xxSuccessful();
     }
 
     @Test
@@ -122,16 +114,12 @@ class GatewayIntegrationTest {
                 .expectStatus().isUnauthorized();
     }
 
-    // Recommendation Service — all authenticated
-
     @Test
     void recommendations_noAuth_returns401() {
         webTestClient.get().uri("/api/recommendations")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
-
-    // User Microservice — authenticated endpoints
 
     @Test
     void userMe_noAuth_returns401() {
