@@ -9,6 +9,7 @@ pipeline {
 
     environment {
         SERVICE_NAME = 'api-gateway'
+        RECEIPIENT_EMAIL = 'johneliud2001@gmail.com'
     }
 
     stages {
@@ -67,9 +68,8 @@ pipeline {
                 failure {
                     echo "Deployment failed for ${env.SERVICE_NAME}. Rolling back..."
                      withCredentials([string(credentialsId: 'render-deploy-hook-api-gateway', variable: 'RENDER_DEPLOY_HOOK')]) {
-                    // Triggers a redeploy of the last pushed commit on the connected branch
-                    // For version-specific rollback, use the Render dashboard: Dashboard > Service > Deploys > Redeploy
-                         sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
+                        // Triggers a redeploy of the last pushed commit on the connected branch
+                        sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
                      }
                 }
             }
@@ -89,7 +89,7 @@ pipeline {
                     <p><b>Console Output:</b> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
                 """,
                 mimeType: 'text/html',
-                to: 'johneliud2001@gmail.com'
+                to: "${env.RECEIPIENT_EMAIL}"
             )
         }
         failure {
@@ -104,7 +104,7 @@ pipeline {
                     <p><b>Console Output:</b> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
                 """,
                 mimeType: 'text/html',
-                to: 'johneliud2001@gmail.com'
+                to: "${env.RECEIPIENT_EMAIL}"
             )
         }
         always {

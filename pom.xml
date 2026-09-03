@@ -12,7 +12,7 @@
 	<artifactId>api-gateway</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>api-gateway</name>
-	<description>Microservice to act as the gateway between the client and sever microservices.</description>
+	<description>API gateway linking client and server microservices.</description>
 	
 	<properties>
 		<java.version>25</java.version>
