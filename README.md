@@ -4,19 +4,14 @@ Spring Cloud Gateway service that acts as the single entry point for all client 
 
 ## Overview
 
-- **Port**: 8083
+- **Port**: 8080
 - **Technology**: Spring Boot 4.0.3 / Spring Cloud Gateway (Reactive / WebFlux)
 - **Purpose**: Request routing, authentication, and cross-cutting concerns
 
 ## Features
 
 ### Request Routing
-Routes requests to backend services:
-- `/api/users/**` → User Service (8080)
-- `/api/products/**` → Product Service (8082)
-- `/api/media/**` → Media Service (8081)
-- `/api/cart/**` → Order Service (8084)
-- `/api/orders/**` → Order Service (8084)
+Routes requests to backend services
 
 ### Authentication
 - JWT token validation for protected routes
@@ -37,7 +32,7 @@ All responses include:
 - `Content-Security-Policy`
 
 ### CORS Configuration
-- Allowed origins: `http://localhost:4200`
+- Allowed origins
 - Allowed methods: GET, POST, PUT, DELETE, OPTIONS
 - Credentials enabled
 
@@ -50,10 +45,7 @@ All responses include:
 
 ### Application Properties
 ```properties
-server.port=8083
-user.service.url=http://localhost:8080
-product.service.url=http://localhost:8082
-media.service.url=http://localhost:8081
+server.port=8080
 jwt.secret=your-secret-key
 ```
 
@@ -69,46 +61,11 @@ cd backend/api-gateway
 mvn spring-boot:run
 ```
 
-Service will start on port 8083.
+Service will start on port 8080.
 
 ## API Endpoints
 
-All requests go through the gateway at `http://localhost:8083`
-
-### Public Endpoints
-- `POST /api/users/register` - User registration
-- `POST /api/users/login` - User login (rate limited: 5/15min per IP)
-- `GET /api/products` - Get all products
-- `GET /api/products/{id}` - Get product by ID
-- `GET /api/media/{id}` - Get media by ID
-- `GET /api/media/product/{productId}` - Get media for a product
-
-### Protected Endpoints
-Require `Authorization: Bearer <token>` header:
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `PUT /api/users/profile/avatar` - Update avatar (Sellers)
-- `GET /api/users/profile/stats` - Buyer analytics
-- `GET /api/users/profile/seller-stats` - Seller analytics
-- `POST /api/products` - Create product (Sellers)
-- `PUT /api/products/{id}` - Update product (Sellers)
-- `DELETE /api/products/{id}` - Delete product (Sellers)
-- `GET /api/products/my-products` - Get own products (Sellers)
-- `POST /api/media/upload` - Upload media (Sellers)
-- `DELETE /api/media/{id}` - Delete media (Sellers)
-- `GET /api/media/my-media` - Get own media (Sellers)
-- `GET /api/cart` - Get cart (Clients)
-- `POST /api/cart/items` - Add to cart (Clients)
-- `PUT /api/cart/items/{productId}` - Update cart item (Clients)
-- `DELETE /api/cart/items/{productId}` - Remove from cart (Clients)
-- `DELETE /api/cart` - Clear cart (Clients)
-- `POST /api/cart/checkout` - Checkout (Clients)
-- `GET /api/orders` - Get buyer orders
-- `GET /api/orders/seller` - Get seller orders (Sellers)
-- `GET /api/orders/{orderId}` - Get order details
-- `PUT /api/orders/{orderId}/cancel` - Cancel order (Clients)
-- `PUT /api/orders/{orderId}/status` - Advance order status (Sellers)
-- `DELETE /api/orders/{orderId}` - Remove order record
+All requests go through the gateway at `http://localhost:8080`
 
 ## Security
 
