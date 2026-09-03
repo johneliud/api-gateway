@@ -1,7 +1,7 @@
 package io.github.johneliud.api_gateway.filter;
 
-import io.github.johneliud.api_gateway.util.JwtUtil;
-import io.jsonwebtoken.Claims;
+import java.nio.charset.StandardCharsets;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -12,9 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
+import io.github.johneliud.api_gateway.util.JwtUtil;
+import io.jsonwebtoken.Claims;
+import reactor.core.publisher.Mono;
 
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
@@ -34,6 +35,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                log.error("Missing or invalid authorization header");
                 return onError(exchange, "Missing or invalid Authorization header", HttpStatus.UNAUTHORIZED);
             }
 
@@ -51,7 +53,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 return chain.filter(mutatedExchange);
             } catch (Exception e) {
                 log.error("JWT validation failed: {}", e.getMessage());
-                return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
+                return onError(exchange, "JWT validation failed", HttpStatus.UNAUTHORIZED);
             }
         };
     }
@@ -59,9 +61,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status) {
         exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        
         String body = "{\"error\":\"" + message + "\"}";
         DataBuffer buffer = exchange.getResponse().bufferFactory()
                 .wrap(body.getBytes(StandardCharsets.UTF_8));
+                
         return exchange.getResponse().writeWith(Mono.just(buffer));
     }
 

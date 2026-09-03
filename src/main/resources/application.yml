@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
@@ -8,6 +8,7 @@ spring:
     import: optional:classpath:application-secrets.properties
   cloud:
     gateway:
+      # Default filters applied to all routes
       default-filters:
         - RemoveRequestHeader=X-User-Id
         - RemoveRequestHeader=X-User-Role
@@ -16,8 +17,9 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info
 
 logging:
   level:
     io.github.johneliud.api_gateway: INFO
+    org.springframework.cloud.gateway: INFO

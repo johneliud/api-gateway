@@ -1,139 +1,315 @@
 # API Gateway
 
-Spring Cloud Gateway service that acts as the single entry point for all client requests, routing them to the appropriate backend microservices.
+A generic, reusable API Gateway built with Spring Cloud Gateway. This gateway can be deployed across multiple microservices projects **without modifying its source code**.
 
-## Overview
+## Architecture
 
-- **Port**: 8083
-- **Technology**: Spring Boot 4.0.3 / Spring Cloud Gateway (Reactive / WebFlux)
-- **Purpose**: Request routing, authentication, and cross-cutting concerns
+```
+                    CLIENT
+                      │
+                      ▼
+              ┌───────────────┐
+              │  API Gateway  │
+              │               │
+              │ Routing       │
+              │ Security      │
+              │ CORS          │
+              │ Rate Limiting │
+              │ Logging       │
+              │ Error Handling│
+              └───────┬───────┘
+                      │
+          Project-specific services
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+       Service A   Service B   Service C
+```
 
-## Features
+The client communicates only with the gateway. The gateway forwards requests to internal services. The client never needs to know internal service URLs.
 
-### Request Routing
-Routes requests to backend services:
-- `/api/users/**` → User Service (8080)
-- `/api/products/**` → Product Service (8082)
-- `/api/media/**` → Media Service (8081)
-- `/api/cart/**` → Order Service (8084)
-- `/api/orders/**` → Order Service (8084)
+## Key Features
 
-### Authentication
-- JWT token validation for protected routes
-- Extracts userId and role from token
-- Forwards user context via headers (X-User-Id, X-User-Role)
-- Returns 401 for invalid/expired tokens
+### Generic Gateway Engine
+- **Request Routing** - Routes requests to backend services based on configuration
+- **JWT Authentication** - Validates JWT tokens for protected routes
+- **Rate Limiting** - IP-based rate limiting using Bucket4j
+- **Security Headers** - Adds security headers to all responses
+- **CORS Configuration** - Configurable allowed origins
+- **Error Handling** - Returns structured error responses
 
-### Rate Limiting
-- Login endpoint: 5 attempts per 15 minutes per IP
-- Uses Bucket4j for in-memory rate limiting
-- Returns 429 Too Many Requests when exceeded
+### Project-Specific Configuration
+- Routes are defined externally (no hardcoded routes in source code)
+- Configuration supplied via environment variables or mounted files
+- Same gateway build works with different projects
+- No source code modifications needed for new projects
 
-### Security Headers
-All responses include:
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
-- `Content-Security-Policy`
+## How It Works
 
-### CORS Configuration
-- Allowed origins: `http://localhost:4200`
-- Allowed methods: GET, POST, PUT, DELETE, OPTIONS
-- Credentials enabled
+### The Gateway Build
 
-### Response Handling
-- Binary responses (images) handled as byte arrays
-- JSON responses handled as strings
-- Query parameters forwarded to backend services
+```
+api-gateway:1.0.0
+```
+
+This single build can be used by multiple projects:
+
+```
+Project A → api-gateway:1.0.0 + Project A configuration
+Project B → api-gateway:1.0.0 + Project B configuration
+Project C → api-gateway:1.0.0 + Project C configuration
+```
+
+The gateway source repository never needs to know what services Project A, B, or C contains.
+
+### Configuration Model
+
+**Gateway Code** (immutable):
+- Routing logic
+- Authentication logic
+- Rate limiting logic
+- Security headers
+- Error handling
+
+**Runtime Configuration** (project-specific):
+- Route definitions
+- Service URLs
+- JWT secrets
+- CORS origins
+- Rate limit settings
+
+## Quick Start
+
+### Running Locally
+
+```bash
+# Build the gateway
+mvn clean package -DskipTests
+
+# Run with default configuration
+java -jar target/api-gateway-0.0.1-SNAPSHOT.jar
+
+# Or run with project-specific configuration
+java -jar target/api-gateway-0.0.1-SNAPSHOT.jar \
+  --spring.config.location=file:./config/application-project-a.yml
+```
+
+### Running with Docker
+
+```bash
+# Build the Docker image
+docker build -t api-gateway:1.0.0 .
+
+# Run with environment variables
+docker run -p 8080:8080 \
+  -e JWT_SECRET=my-secret \
+  -e CORS_ALLOWED_ORIGINS=http://localhost:3000 \
+  -e USER_SERVICE_URL=http://user-service:8081 \
+  api-gateway:1.0.0
+
+# Run with mounted configuration
+docker run -p 8080:8080 \
+  -v ./my-project-config:/config \
+  api-gateway:1.0.0
+```
 
 ## Configuration
 
-### Application Properties
-```properties
-server.port=8083
-user.service.url=http://localhost:8080
-product.service.url=http://localhost:8082
-media.service.url=http://localhost:8081
-jwt.secret=your-secret-key
-```
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `JWT_SECRET` | Secret key for JWT validation | `change-me-in-production` |
+| `JWT_EXPIRATION` | JWT token expiration (ms) | `86400000` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:4200` |
+| `RATE_LIMIT_LOGIN_CAPACITY` | Rate limit capacity | `5` |
+| `RATE_LIMIT_LOGIN_REFILL_TOKENS` | Rate limit refill tokens | `5` |
+| `RATE_LIMIT_LOGIN_REFILL_MINUTES` | Rate limit refill interval (min) | `15` |
+| `SERVER_PORT` | Gateway server port | `8080` |
 
 ### Route Configuration
-Routes are defined in `RouteConfig.java`:
-- Public routes: register, login, get products, get media
-- Protected routes: profile, product CRUD, media upload/delete
 
-## Running the Service
+Routes are defined using Spring Cloud Gateway's property-based configuration. Supply routes via:
 
-```bash
-cd backend/api-gateway
-mvn spring-boot:run
+1. **External YAML file** mounted at `/config/application.yml`
+2. **Environment variables** (see Spring Cloud Gateway docs)
+3. **Spring Cloud Config Server**
+
+#### Example Route Configuration
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: AuthenticationFilter
+        
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - name: AuthenticationFilter
+            - name: RateLimitGatewayFilter
 ```
 
-Service will start on port 8083.
+#### Available Filters
 
-## API Endpoints
+- `AuthenticationFilter` - JWT token validation
+- `RateLimitGatewayFilter` - IP-based rate limiting
+- `SecurityHeadersFilter` - Adds security headers (applied to all responses)
 
-All requests go through the gateway at `http://localhost:8083`
+### Example: Two Projects, One Gateway Build
 
-### Public Endpoints
-- `POST /api/users/register` - User registration
-- `POST /api/users/login` - User login (rate limited: 5/15min per IP)
-- `GET /api/products` - Get all products
-- `GET /api/products/{id}` - Get product by ID
-- `GET /api/media/{id}` - Get media by ID
-- `GET /api/media/product/{productId}` - Get media for a product
+**Project A configuration** (`config/application-project-a.yml`):
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://user-service:8081
+          predicates:
+            - Path=/api/users/**
+```
 
-### Protected Endpoints
-Require `Authorization: Bearer <token>` header:
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `PUT /api/users/profile/avatar` - Update avatar (Sellers)
-- `GET /api/users/profile/stats` - Buyer analytics
-- `GET /api/users/profile/seller-stats` - Seller analytics
-- `POST /api/products` - Create product (Sellers)
-- `PUT /api/products/{id}` - Update product (Sellers)
-- `DELETE /api/products/{id}` - Delete product (Sellers)
-- `GET /api/products/my-products` - Get own products (Sellers)
-- `POST /api/media/upload` - Upload media (Sellers)
-- `DELETE /api/media/{id}` - Delete media (Sellers)
-- `GET /api/media/my-media` - Get own media (Sellers)
-- `GET /api/cart` - Get cart (Clients)
-- `POST /api/cart/items` - Add to cart (Clients)
-- `PUT /api/cart/items/{productId}` - Update cart item (Clients)
-- `DELETE /api/cart/items/{productId}` - Remove from cart (Clients)
-- `DELETE /api/cart` - Clear cart (Clients)
-- `POST /api/cart/checkout` - Checkout (Clients)
-- `GET /api/orders` - Get buyer orders
-- `GET /api/orders/seller` - Get seller orders (Sellers)
-- `GET /api/orders/{orderId}` - Get order details
-- `PUT /api/orders/{orderId}/cancel` - Cancel order (Clients)
-- `PUT /api/orders/{orderId}/status` - Advance order status (Sellers)
-- `DELETE /api/orders/{orderId}` - Remove order record
+**Project B configuration** (`config/application-project-b.yml`):
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: product-service
+          uri: http://product-service:9001
+          predicates:
+            - Path=/api/products/**
+        - id: inventory-service
+          uri: http://inventory-service:9002
+          predicates:
+            - Path=/api/inventory/**
+```
+
+**Same gateway build** (`api-gateway:1.0.0`):
+```bash
+# Run with Project A config
+java -jar api-gateway-1.0.0.jar \
+  --spring.config.location=file:./config/application-project-a.yml
+
+# Run with Project B config
+java -jar api-gateway-1.0.0.jar \
+  --spring.config.location=file:./config/application-project-b.yml
+```
+
+No source code changes required.
+
+## Docker
+
+### Building the Image
+
+```bash
+docker build -t api-gateway:1.0.0 .
+```
+
+### Docker Compose Examples
+
+Example configurations for different projects are provided in the `config/` directory:
+
+- `docker-compose-project-a.yml` - Example with user service
+- `docker-compose-project-b.yml` - Example with product/inventory services
+
+```bash
+# Run with Project A configuration
+docker-compose -f config/docker-compose-project-a.yml up
+
+# Run with Project B configuration
+docker-compose -f config/docker-compose-project-b.yml up
+```
+
+## Versioning
+
+The gateway follows semantic versioning: `MAJOR.MINOR.PATCH`
+
+```
+api-gateway:1.0.0
+api-gateway:1.1.0
+api-gateway:1.1.1
+```
+
+### Using a Specific Version
+
+```bash
+# Docker
+docker run api-gateway:1.0.0
+
+# Docker Compose
+image: api-gateway:1.0.0
+```
+
+### Upgrading
+
+1. Test the new version with your project configuration
+2. Update your deployment to use the new version tag
+3. Existing deployments remain on their current version until explicitly updated
+
+**Important:** Updating the gateway does NOT automatically update existing projects. Each project explicitly chooses which version to use.
+
+## Deploying to a New Project
+
+1. **Copy the gateway artifact** (Docker image or JAR)
+2. **Create your project configuration**:
+   ```bash
+   mkdir -p infrastructure/gateway
+   cp config/application-project-a.yml infrastructure/gateway/application.yml
+   ```
+3. **Modify routes** to match your services
+4. **Set environment variables** for your service URLs
+5. **Deploy** with your configuration
+
+## Project Structure
+
+```
+api-gateway/
+├── src/main/java/
+│   ├── config/
+│   │   ├── CorsConfig.java              # CORS configuration
+│   │   └── RateLimitService.java        # Rate limiting service
+│   ├── filter/
+│   │   ├── AuthenticationFilter.java    # JWT authentication
+│   │   ├── RateLimitGatewayFilter.java  # Rate limit filter
+│   │   └── SecurityHeadersFilter.java   # Security headers
+│   └── util/
+│       └── JwtUtil.java                 # JWT utility
+├── src/main/resources/
+│   ├── application.properties           # Default properties
+│   └── application.yml                  # Default YAML config
+├── config/
+│   ├── application-project-a.yml        # Example: Project A config
+│   ├── application-project-b.yml        # Example: Project B config
+│   ├── docker-compose-project-a.yml     # Example: Project A compose
+│   └── docker-compose-project-b.yml     # Example: Project B compose
+├── Dockerfile
+├── Jenkinsfile
+└── pom.xml
+```
+
+## Testing
+
+```bash
+# Run all tests
+mvn test
+
+# Run with specific profile
+mvn test -Dspring.profiles.active=test
+```
 
 ## Security
 
-- JWT tokens validated at gateway
-- User context forwarded to backend services
-- Backend services trust X-User-Id and X-User-Role headers
+- JWT secrets must be provided via environment variables (never hardcoded)
 - Rate limiting prevents brute force attacks
-
-## Dependencies
-
-- Spring Boot 4.0.3
-- Spring Cloud Gateway (WebFlux)
-- JWT (io.jsonwebtoken / jjwt)
-- Bucket4j (rate limiting)
-- Lombok
-
-## Error Responses
-
-```json
-{
-  "error": "Error message"
-}
-```
-
-Status codes:
-- 401 - Unauthorized (invalid/missing token)
-- 429 - Too Many Requests (rate limit exceeded)
-- 502 - Bad Gateway (backend service unavailable)
+- Security headers protect against common vulnerabilities
+- CORS restricts allowed origins
