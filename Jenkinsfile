@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     options {
-        buildDiscarder(logRotator(numToKeepStr: '3'))
+        buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
         timestamps()
     }
 
     environment {
         SERVICE_NAME = 'api-gateway'
-        RECEIPIENT_EMAIL = 'johneliud2001@gmail.com'
+        DOCKER_REGISTRY = credentials('docker-registry')
     }
 
     stages {
@@ -57,55 +57,32 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Build Docker Image') {
             steps {
-                echo "Deploying ${env.SERVICE_NAME} to Render..."
-                 withCredentials([string(credentialsId: 'render-deploy-hook-api-gateway', variable: 'RENDER_DEPLOY_HOOK')]) {
-                     sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
-                 }
+                echo "Building Docker image for ${env.SERVICE_NAME}..."
+                sh "docker build -t ${env.SERVICE_NAME}:${env.BUILD_NUMBER} ."
+                sh "docker tag ${env.SERVICE_NAME}:${env.BUILD_NUMBER} ${env.SERVICE_NAME}:latest"
             }
-            post {
-                failure {
-                    echo "Deployment failed for ${env.SERVICE_NAME}. Rolling back..."
-                     withCredentials([string(credentialsId: 'render-deploy-hook-api-gateway', variable: 'RENDER_DEPLOY_HOOK')]) {
-                        // Triggers a redeploy of the last pushed commit on the connected branch
-                        sh 'curl -X POST "$RENDER_DEPLOY_HOOK"'
-                     }
-                }
+        }
+
+        stage('Push to Registry') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "Pushing Docker image to registry..."
+                sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE_NAME}:${env.BUILD_NUMBER}"
+                sh "docker push ${env.DOCKER_REGISTRY}/${env.SERVICE_NAME}:latest"
             }
         }
     }
 
     post {
         success {
-        	echo "SUCCESS: ${env.SERVICE_NAME} build and tests passed. Alert sent to email."
-            emailext(
-                subject: "[Jenkins] ${env.JOB_NAME} #${env.BUILD_NUMBER} — Build Successful",
-                body: """
-                    <p><b>Status:</b> SUCCESS</p>
-                    <p><b>Service:</b> ${env.SERVICE_NAME}</p>
-                    <p><b>Job:</b> ${env.JOB_NAME}</p>
-                    <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
-                    <p><b>Console Output:</b> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
-                """,
-                mimeType: 'text/html',
-                to: "${env.RECEIPIENT_EMAIL}"
-            )
+            echo "SUCCESS: ${env.SERVICE_NAME} build and tests passed."
         }
         failure {
-        	echo "FAILURE: ${env.SERVICE_NAME} build or tests failed. Alert sent to email. Check logs and JUnit reports."
-            emailext(
-                subject: "[Jenkins] ${env.JOB_NAME} #${env.BUILD_NUMBER} — Build Failed",
-                body: """
-                    <p><b>Status:</b> FAILURE</p>
-                    <p><b>Service:</b> ${env.SERVICE_NAME}</p>
-                    <p><b>Job:</b> ${env.JOB_NAME}</p>
-                    <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
-                    <p><b>Console Output:</b> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
-                """,
-                mimeType: 'text/html',
-                to: "${env.RECEIPIENT_EMAIL}"
-            )
+            echo "FAILURE: ${env.SERVICE_NAME} build or tests failed. Check logs and JUnit reports."
         }
         always {
             echo "Cleaning up workspace..."
