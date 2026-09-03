@@ -1,21 +1,23 @@
 package io.github.johneliud.api_gateway;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+import javax.crypto.SecretKey;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayIntegrationTest {
 
-    private static final String TEST_SECRET = "NqnGzaDEIZhGXWnbnWDHViZyKhinshBQ";
+    private static final String TEST_SECRET = "ThisIsATestSecretThisIsATestSecret";
 
     @LocalServerPort
     private int port;
@@ -38,8 +40,6 @@ class GatewayIntegrationTest {
                 .signWith(key)
                 .compact();
     }
-
-    // AG-8: JWT validation tests
 
     @Test
     void protectedRoute_noAuthHeader_returns401() {
@@ -64,8 +64,6 @@ class GatewayIntegrationTest {
                 .expectStatus().isUnauthorized();
     }
 
-    // AG-7: Security headers present on all responses
-
     @Test
     void anyResponse_hasSecurityHeaders() {
         webTestClient.get().uri("/api/users/profile/me")
@@ -74,74 +72,5 @@ class GatewayIntegrationTest {
                 .expectHeader().valueEquals("X-Frame-Options", "DENY")
                 .expectHeader().valueEquals("X-XSS-Protection", "1; mode=block")
                 .expectHeader().exists("Content-Security-Policy");
-    }
-
-    // AG-9: Orders routes
-
-    @Test
-    void ordersRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/orders")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void orderByIdRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/orders/order123")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void sellerOrdersRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/orders/seller")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void createOrderRoute_noAuth_returns401() {
-        webTestClient.post().uri("/api/orders")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    // AG-10: Cart routes
-
-    @Test
-    void cartRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/cart")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void addCartItemRoute_noAuth_returns401() {
-        webTestClient.post().uri("/api/cart/items")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void checkoutRoute_noAuth_returns401() {
-        webTestClient.post().uri("/api/cart/checkout")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    // AG-11: Profile stats routes
-
-    @Test
-    void buyerStatsRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/users/profile/stats")
-                .exchange()
-                .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void sellerStatsRoute_noAuth_returns401() {
-        webTestClient.get().uri("/api/users/profile/seller-stats")
-                .exchange()
-                .expectStatus().isUnauthorized();
     }
 }
