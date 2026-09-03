@@ -1,16 +1,16 @@
 package io.github.johneliud.api_gateway.config;
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
 
 @Component
 public class RateLimitService {
@@ -18,13 +18,13 @@ public class RateLimitService {
     private static final Logger log = LoggerFactory.getLogger(RateLimitService.class);
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
     
-    @Value("${rate.limit.login.capacity:5}")
+    @Value("${rate.limit.login.capacity}")
     private int capacity;
     
-    @Value("${rate.limit.login.refill.tokens:5}")
+    @Value("${rate.limit.login.refill.tokens}")
     private int refillTokens;
     
-    @Value("${rate.limit.login.refill.minutes:15}")
+    @Value("${rate.limit.login.refill.minutes}")
     private int refillMinutes;
 
     public Bucket resolveBucket(String key) {
@@ -32,7 +32,10 @@ public class RateLimitService {
     }
 
     private Bucket createNewBucket() {
-        Bandwidth limit = Bandwidth.classic(capacity, Refill.intervally(refillTokens, Duration.ofMinutes(refillMinutes)));
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(capacity)
+                .refillIntervally(refillTokens, Duration.ofMinutes(refillMinutes))
+                .build();
         return Bucket.builder()
                 .addLimit(limit)
                 .build();
