@@ -17,8 +17,7 @@ jobs:
           FAILED=0
 
           declare -A SERVICES=(
-            ["buy01"]="${{ secrets.BUY01_BASE_URL }}"
-            ["neo4flix"]="${{ secrets.NEO4FLIX_BASE_URL }}"
+            ["api-gateway"]="${{ secrets.GATEWAY_BASE_URL }}"
           )
 
           for name in "${!SERVICES[@]}"; do
@@ -34,6 +33,6 @@ jobs:
           done
 
           if [ "$FAILED" -ne 0 ]; then
-            echo "One or more services are down"
+            echo "Service is down"
             exit 1
           fi
