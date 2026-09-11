@@ -281,6 +281,7 @@ api-gateway/
 │   ├── filter/
 │   │   ├── AuthenticationFilter.java    # JWT authentication
 │   │   ├── RateLimitGatewayFilter.java  # Rate limit filter
+│   │   ├── LoggingGlobalFilter.java     # Request route logging
 │   │   └── SecurityHeadersFilter.java   # Security headers
 │   └── util/
 │       └── JwtUtil.java                 # JWT utility
