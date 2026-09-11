@@ -5,40 +5,34 @@ spring:
   application:
     name: api-gateway
   config:
-    import: optional:classpath:application-secrets.properties
+    import:
+      - optional:classpath:application-secrets.properties
   cloud:
     gateway:
-      # Default filters applied to all routes
-      default-filters:
-        - RemoveRequestHeader=X-User-Id
-        - RemoveRequestHeader=X-User-Role
+      server:
+        webflux:
+          default-filters:
+            - RemoveRequestHeader=X-User-Id
+            - RemoveRequestHeader=X-User-Role
 
-      routes:
-        - id: identity-register
-          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
-          predicates:
-            - Path=/auth/register
-            - Method=POST
+jwt:
+  secret: ${JWT_SECRET:change-me-in-production}
+  expiration: ${JWT_EXPIRATION:86400000}
 
-        - id: identity-login
-          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
-          predicates:
-            - Path=/auth/login
-            - Method=POST
-          filters:
-            - name: RateLimitGatewayFilter
+rate:
+  limit:
+    login:
+      capacity: ${RATE_LIMIT_LOGIN_CAPACITY:5}
+      refill:
+        tokens: ${RATE_LIMIT_LOGIN_REFILL_TOKENS:5}
+        minutes: ${RATE_LIMIT_LOGIN_REFILL_MINUTES:15}
 
-        - id: identity-refresh
-          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
-          predicates:
-            - Path=/auth/refresh
-            - Method=POST
+identity:
+  service:
+    url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
 
-        - id: identity-logout
-          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
-          predicates:
-            - Path=/auth/logout
-            - Method=POST
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
 management:
   endpoints:
