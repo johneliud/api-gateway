@@ -17,3 +17,17 @@ spring:
                 - Method=POST
               filters:
                 - name: RateLimitGatewayFilter
+
+            - id: identity-refresh
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/refresh
+                - Method=POST
+              filters:
+                - name: RateLimitGatewayFilter
+
+            - id: identity-logout
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/logout
+                - Method=POST
