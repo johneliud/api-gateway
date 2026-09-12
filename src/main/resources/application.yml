@@ -7,7 +7,7 @@ spring:
   config:
     import:
       - optional:classpath:application-secrets.properties
-      - optional:file:./config/application-identity-service.yml
+      - optional:file:../identity_service/config/application-identity-service.yml
       - optional:file:/app/config/application.yml
   cloud:
     gateway:
@@ -18,7 +18,7 @@ spring:
             - RemoveRequestHeader=X-User-Roles
 
 jwt:
-  secret: ${JWT_SECRET:change-me-in-production}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
 rate:
