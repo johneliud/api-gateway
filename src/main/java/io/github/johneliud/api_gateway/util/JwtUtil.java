@@ -1,6 +1,8 @@
 package io.github.johneliud.api_gateway.util;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
@@ -33,7 +35,16 @@ public class JwtUtil {
         return claims.getSubject();
     }
 
-    public String getRole(Claims claims) {
-        return claims.get("role", String.class);
+    public String getRoles(Claims claims) {
+        Object rolesClaim = claims.get("roles");
+        if (rolesClaim instanceof List<?> list) {
+            return list.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(","));
+        }
+        if (rolesClaim instanceof String s) {
+            return s;
+        }
+        return "";
     }
 }

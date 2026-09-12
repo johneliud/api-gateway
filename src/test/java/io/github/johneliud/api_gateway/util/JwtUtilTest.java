@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 
@@ -29,11 +30,11 @@ class JwtUtilTest {
         ReflectionTestUtils.setField(jwtUtil, "secret", TEST_SECRET);
     }
 
-    private String buildToken(String userId, String role, Date expiry) {
+    private String buildToken(String userId, List<String> roles, Date expiry) {
         SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
                 .subject(userId)
-                .claim("role", role)
+                .claim("roles", roles)
                 .expiration(expiry)
                 .signWith(key)
                 .compact();
@@ -41,7 +42,7 @@ class JwtUtilTest {
 
     @Test
     void validateToken_validToken_returnsClaims() {
-        String token = buildToken("user123", "CLIENT", new Date(System.currentTimeMillis() + 3_600_000));
+        String token = buildToken("user123", List.of("CLIENT"), new Date(System.currentTimeMillis() + 3_600_000));
         Claims claims = jwtUtil.validateToken(token);
         assertNotNull(claims);
         assertEquals("user123", claims.getSubject());
@@ -49,21 +50,28 @@ class JwtUtilTest {
 
     @Test
     void getUserId_returnsSubject() {
-        String token = buildToken("user123", "CLIENT", new Date(System.currentTimeMillis() + 3_600_000));
+        String token = buildToken("user123", List.of("CLIENT"), new Date(System.currentTimeMillis() + 3_600_000));
         Claims claims = jwtUtil.validateToken(token);
         assertEquals("user123", jwtUtil.getUserId(claims));
     }
 
     @Test
-    void getRole_returnsRoleClaim() {
-        String token = buildToken("user123", "SELLER", new Date(System.currentTimeMillis() + 3_600_000));
+    void getRoles_returnsRolesClaim() {
+        String token = buildToken("user123", List.of("ADMIN", "TRAVELER"), new Date(System.currentTimeMillis() + 3_600_000));
         Claims claims = jwtUtil.validateToken(token);
-        assertEquals("SELLER", jwtUtil.getRole(claims));
+        assertEquals("ADMIN,TRAVELER", jwtUtil.getRoles(claims));
+    }
+
+    @Test
+    void getRoles_singleRole_returnsSingleValue() {
+        String token = buildToken("user123", List.of("SELLER"), new Date(System.currentTimeMillis() + 3_600_000));
+        Claims claims = jwtUtil.validateToken(token);
+        assertEquals("SELLER", jwtUtil.getRoles(claims));
     }
 
     @Test
     void validateToken_expiredToken_throwsException() {
-        String token = buildToken("user123", "CLIENT", new Date(System.currentTimeMillis() - 1_000));
+        String token = buildToken("user123", List.of("CLIENT"), new Date(System.currentTimeMillis() - 1_000));
         assertThrows(Exception.class, () -> jwtUtil.validateToken(token));
     }
 

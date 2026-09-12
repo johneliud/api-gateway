@@ -10,10 +10,10 @@ spring:
                 - Path=/auth/register
                 - Method=POST
 
-            # - id: identity-login
-            #   uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
-            #   predicates:
-            #     - Path=/auth/login
-            #     - Method=POST
-            #   filters:
-            #     - name: RateLimitGatewayFilter
+            - id: identity-login
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/login
+                - Method=POST
+              filters:
+                - name: RateLimitGatewayFilter
