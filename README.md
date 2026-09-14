@@ -1,44 +1,31 @@
 # API Gateway
 
-A generic, reusable API Gateway built with Spring Cloud Gateway. This gateway can be deployed across multiple microservices projects **without modifying its source code**.
+A generic, reusable API Gateway built with Spring Cloud Gateway. This gateway can be deployed across multiple microservices projects without modifying its source code.
 
 ## Architecture
 
-```
-                    CLIENT
-                      │
-                      ▼
-              ┌───────────────┐
-              │  API Gateway  │
-              │               │
-              │ Routing       │
-              │ Security      │
-              │ CORS          │
-              │ Rate Limiting │
-              │ Logging       │
-              │ Error Handling│
-              └───────┬───────┘
-                      │
-          Project-specific services
-                      │
-          ┌───────────┼───────────┐
-          ▼           ▼           ▼
-       Service A   Service B   Service C
-```
-
 The client communicates only with the gateway. The gateway forwards requests to internal services. The client never needs to know internal service URLs.
+
+```
+CLIENT -> API Gateway -> Service A
+                      -> Service B
+                      -> Service C
+```
 
 ## Key Features
 
 ### Generic Gateway Engine
+
 - **Request Routing** - Routes requests to backend services based on configuration
 - **JWT Authentication** - Validates JWT tokens for protected routes
+- **Role-Based Authorization** - Route-level role enforcement via AuthorizationFilter
 - **Rate Limiting** - IP-based rate limiting using Bucket4j
 - **Security Headers** - Adds security headers to all responses
 - **CORS Configuration** - Configurable allowed origins
 - **Error Handling** - Returns structured error responses
 
 ### Project-Specific Configuration
+
 - Routes are defined externally (no hardcoded routes in source code)
 - Configuration supplied via environment variables or mounted files
 - Same gateway build works with different projects
@@ -48,25 +35,14 @@ The client communicates only with the gateway. The gateway forwards requests to 
 
 ### The Gateway Build
 
-```
-api-gateway:1.0.0
-```
-
-This single build can be used by multiple projects:
-
-```
-Project A → api-gateway:1.0.0 + Project A configuration
-Project B → api-gateway:1.0.0 + Project B configuration
-Project C → api-gateway:1.0.0 + Project C configuration
-```
-
-The gateway source repository never needs to know what services Project A, B, or C contains.
+This single build can be used by multiple projects. The gateway source repository never needs to know what services any given project contains.
 
 ### Configuration Model
 
 **Gateway Code** (immutable):
 - Routing logic
 - Authentication logic
+- Authorization logic
 - Rate limiting logic
 - Security headers
 - Error handling
@@ -80,11 +56,18 @@ The gateway source repository never needs to know what services Project A, B, or
 
 ## Quick Start
 
+### Clone
+
+```bash
+git clone https://github.com/johneliud/travel_management_system.git
+cd travel_management_system/backend/api-gateway
+```
+
 ### Running Locally
 
 ```bash
 # Build the gateway
-mvn clean package -DskipTests
+./mvnw clean package -DskipTests
 
 # Run with default configuration
 java -jar target/api-gateway-0.0.1-SNAPSHOT.jar
@@ -104,7 +87,7 @@ docker build -t api-gateway:1.0.0 .
 docker run -p 8080:8080 \
   -e JWT_SECRET=my-secret \
   -e CORS_ALLOWED_ORIGINS=http://localhost:3000 \
-  -e USER_SERVICE_URL=http://user-service:8081 \
+  -e IDENTITY_SERVICE_URL=http://identity-service:8081 \
   api-gateway:1.0.0
 
 # Run with mounted configuration
@@ -118,7 +101,7 @@ docker run -p 8080:8080 \
 ### Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|---------|
+|---|---|---|
 | `JWT_SECRET` | Secret key for JWT validation | `change-me-in-production` |
 | `JWT_EXPIRATION` | JWT token expiration (ms) | `86400000` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:4200` |
@@ -126,6 +109,7 @@ docker run -p 8080:8080 \
 | `RATE_LIMIT_LOGIN_REFILL_TOKENS` | Rate limit refill tokens | `5` |
 | `RATE_LIMIT_LOGIN_REFILL_MINUTES` | Rate limit refill interval (min) | `15` |
 | `SERVER_PORT` | Gateway server port | `8080` |
+| `IDENTITY_SERVICE_URL` | Identity service base URL | `http://localhost:8081` |
 
 ### Route Configuration
 
@@ -148,7 +132,7 @@ spring:
             - Path=/api/users/**
           filters:
             - name: AuthenticationFilter
-        
+
         - id: payment-service
           uri: ${PAYMENT_SERVICE_URL:http://localhost:8082}
           predicates:
@@ -160,7 +144,8 @@ spring:
 
 #### Available Filters
 
-- `AuthenticationFilter` - JWT token validation
+- `AuthenticationFilter` - JWT token validation, sets X-User-Id and X-User-Roles headers
+- `AuthorizationFilter` - Route-level role enforcement via `requiredRole` config arg
 - `RateLimitGatewayFilter` - IP-based rate limiting
 - `SecurityHeadersFilter` - Adds security headers (applied to all responses)
 
@@ -234,12 +219,6 @@ docker-compose -f config/docker-compose-project-b.yml up
 
 The gateway follows semantic versioning: `MAJOR.MINOR.PATCH`
 
-```
-api-gateway:1.0.0
-api-gateway:1.1.0
-api-gateway:1.1.1
-```
-
 ### Using a Specific Version
 
 ```bash
@@ -280,6 +259,7 @@ api-gateway/
 │   │   └── RateLimitService.java        # Rate limiting service
 │   ├── filter/
 │   │   ├── AuthenticationFilter.java    # JWT authentication
+│   │   ├── AuthorizationFilter.java     # Route-level role enforcement
 │   │   ├── RateLimitGatewayFilter.java  # Rate limit filter
 │   │   ├── LoggingGlobalFilter.java     # Request route logging
 │   │   └── SecurityHeadersFilter.java   # Security headers
@@ -302,10 +282,10 @@ api-gateway/
 
 ```bash
 # Run all tests
-mvn test
+./mvnw test
 
 # Run with specific profile
-mvn test -Dspring.profiles.active=test
+./mvnw test -Dspring.profiles.active=test
 ```
 
 ## Security
@@ -314,3 +294,4 @@ mvn test -Dspring.profiles.active=test
 - Rate limiting prevents brute force attacks
 - Security headers protect against common vulnerabilities
 - CORS restricts allowed origins
+- Role-based authorization enforced at gateway level for admin routes
