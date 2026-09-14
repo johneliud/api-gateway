@@ -13,9 +13,7 @@ spring:
     gateway:
       server:
         webflux:
-          default-filters:
-            - RemoveRequestHeader=X-User-Id
-            - RemoveRequestHeader=X-User-Roles
+          default-filters: []
 
 jwt:
   secret: ${JWT_SECRET}
